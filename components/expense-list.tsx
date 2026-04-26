@@ -93,7 +93,7 @@ export function ExpenseList({ expenses, onExpenseDeleted }: ExpenseListProps) {
                   {expense.description || '-'}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-right">
-                  ${expense.amount.toFixed(2)}
+                  ₹{expense.amount.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 text-sm text-center">
                   <Button
