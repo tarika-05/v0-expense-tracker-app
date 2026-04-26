@@ -45,7 +45,7 @@ export function ExpenseSummary({ expenses }: ExpenseSummaryProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-600 mb-2">Total Expenses</p>
-            <p className="text-3xl font-bold">₹{totalExpenses.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${totalExpenses.toFixed(2)}</p>
           </div>
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
             <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -64,7 +64,7 @@ export function ExpenseSummary({ expenses }: ExpenseSummaryProps) {
         <div>
           <p className="text-sm text-gray-600 mb-2">Top Category</p>
           <p className="text-xl font-bold">
-            {topCategory ? `${topCategory.category} (₹${topCategory.amount.toFixed(2)})` : '-'}
+            {topCategory ? `${topCategory.category} ($${topCategory.amount.toFixed(2)})` : '-'}
           </p>
         </div>
       </Card>
