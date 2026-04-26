@@ -1,38 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { randomUUID } from 'crypto';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+interface Expense {
+  id: string;
+  amount: number;
+  category: string;
+  description: string | null;
+  date: string;
+  created_at: string;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const cookieStore = await cookies();
+    const expensesJson = cookieStore.get('expenses')?.value;
     
-    // Get the user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const expenses: Expense[] = expensesJson ? JSON.parse(expensesJson) : [];
     
-    if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { data: expenses, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('date', { ascending: false });
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json(expenses);
   } catch (error) {
+    console.error('[v0] Error loading expenses:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -42,18 +30,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Get the user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     const { amount, category, description, date } = body;
 
@@ -64,29 +40,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: expense, error } = await supabase
-      .from('expenses')
-      .insert([
-        {
-          user_id: session.user.id,
-          amount: parseFloat(amount),
-          category,
-          description: description || null,
-          date,
-        },
-      ])
-      .select()
-      .single();
+    const cookieStore = await cookies();
+    const expensesJson = cookieStore.get('expenses')?.value;
+    const expenses: Expense[] = expensesJson ? JSON.parse(expensesJson) : [];
 
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
+    const newExpense: Expense = {
+      id: randomUUID(),
+      amount: parseFloat(amount),
+      category,
+      description: description || null,
+      date,
+      created_at: new Date().toISOString(),
+    };
 
-    return NextResponse.json(expense, { status: 201 });
+    expenses.unshift(newExpense);
+
+    // Set cookie with max age of 30 days
+    cookieStore.set('expenses', JSON.stringify(expenses), {
+      maxAge: 30 * 24 * 60 * 60,
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return NextResponse.json(newExpense, { status: 201 });
   } catch (error) {
+    console.error('[v0] Error creating expense:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
